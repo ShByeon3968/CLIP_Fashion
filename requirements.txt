@@ -1,0 +1,27 @@
+# LangChain & LLM
+langchain==0.1.17
+openai==1.30.1
+tiktoken==0.6.0
+
+# AnimateDiff & Stable Diffusion
+diffusers==0.26.3
+transformers==4.40.1
+accelerate==0.30.1
+safetensors==0.4.2
+einops==0.7.0
+opencv-python==4.9.0.80
+
+# Huggingface login
+huggingface-hub==0.23.1
+
+# Pose Estimation (M3 단계용, 선택)
+# mmcv-full==1.7.1
+# mmpose==1.1.0
+
+# 유틸 및 영상 저장
+Pillow==10.2.0
+imageio==2.34.1
+imageio-ffmpeg==0.4.9
+
+# 기타 유틸
+uuid==1.30
