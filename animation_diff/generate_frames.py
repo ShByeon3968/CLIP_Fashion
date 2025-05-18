@@ -18,7 +18,7 @@ class LTXVideoDiff(VideoDiff):
     def __init__(self,device:str="cuda"):
         self.device = device
         # 파이프라인 세팅
-        self.pipe = LTXPipeline.from_pretrained("a-r-r-o-w/LTX-Video-0.9.1-diffusers", torch_dtype=torch.bfloat16)
+        self.pipe = LTXPipeline.from_pretrained("a-r-r-o-w/LTX-Video-0.9.7-diffusers", torch_dtype=torch.bfloat16)
         self.pipe.to("cuda")
 
         # negative prompt 설정
