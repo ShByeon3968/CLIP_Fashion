@@ -1,10 +1,17 @@
 import torch
-from diffusers import LTXPipeline
+from diffusers import LTXPipeline, LTXConditionPipeline, LTXLatentUpsamplePipeline
 from diffusers.utils import export_to_video, load_video
+from diffusers.pipelines.ltx.pipeline_ltx_condition import LTXVideoCondition
 import uuid
 import os
+from abc import *
 
-class AnimateDiff:
+class VideoDiff(metaclass=ABCMeta):
+    @abstractmethod
+    def generate_animation(self):
+        pass
+
+class LTXVideoDiff(VideoDiff):
     '''
     LTX Video 13B 비디오 생성기 
     '''
