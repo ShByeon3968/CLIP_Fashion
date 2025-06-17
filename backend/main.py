@@ -18,25 +18,47 @@ from utils import load_yaml
 config = load_yaml("../config.yaml")
 app = FastAPI()
 
-# 프롬프트 생성 엔드포인트
+# ✅ 프롬프트 생성 엔드포인트 (프리셋 포함)
 @app.post("/generate_prompt")
-async def generate_prompt(text: str = Form(...)):
+async def generate_prompt(
+    text: str = Form(...),  # 이미지 경로
+    style: str = Form(...),
+    angle: str = Form(...),
+    lighting: str = Form(...)
+):
     """
-    사용자의 입력 텍스트 기반으로 한국어 & 영어 리디자인 프롬프트 생성
+    선택된 이미지 → 캡션 → 한국어 프롬프트 → 영어 프롬프트 + 프리셋
     """
     try:
+        # 이미지 열기
         target_image = Image.open(text).convert("RGB")
+
+        # BLIP 기반 캡션 생성
         caption = generate_caption(target_image)
-        print(f"Generated caption: {caption}")
+        print(f"[Caption] {caption}")
+
+        # 한국어 리디자인 프롬프트 생성
         ko_prompt = suggest_prompt_langchain(caption)
-        print(f"Generated Korean prompt: {ko_prompt}")
-        en_prompt = translate_to_english(ko_prompt)
-        print(f"Translated English prompt: {en_prompt}")
-        return {"ko_prompt": ko_prompt, "en_prompt": en_prompt}
+        print(f"[Korean Prompt] {ko_prompt}")
+
+        # 영어 번역 + 프리셋 후처리
+        en_prompt_base = translate_to_english(ko_prompt)
+        print(f"[English Prompt (before preset)] {en_prompt_base}")
+
+        preset_suffix = f"{style}, {angle}, {lighting}"
+        en_prompt_full = f"{en_prompt_base}, {preset_suffix}"
+
+        return {
+            "ko_prompt": ko_prompt,
+            "en_prompt": en_prompt_full
+        }
+
     except Exception as e:
+        print("[Error]", e)
         return JSONResponse({"error": str(e)}, status_code=500)
 
-# 리디자인 이미지 생성 엔드포인트
+
+# ✅ 리디자인 이미지 생성
 @app.post("/redesign_image")
 async def redesign_image(prompt: str = Form(...), file: UploadFile = None):
     """
@@ -54,4 +76,5 @@ async def redesign_image(prompt: str = Form(...), file: UploadFile = None):
 
         return JSONResponse({"image_base64": encoded_image})
     except Exception as e:
+        print("[Redesign Error]", e)
         return JSONResponse({"error": str(e)}, status_code=500)

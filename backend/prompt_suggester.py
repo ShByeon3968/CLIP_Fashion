@@ -85,8 +85,6 @@ def translate_to_english(korean_prompt: str) -> str:
                     "   2. Style type (e.g., high fashion, editorial photo)\n"
                     "   3. Viewpoint (e.g., full body, front view)\n"
                     "   4. Lighting/quality (e.g., soft lighting, 8k, studio background)\n\n"
-                    "🎯 Final Output Format Example:\n"
-                    "   blue sleeveless hoodie, high fashion, full body, 8k, soft lighting, studio background"
                 )
             ),
             HumanMessage(

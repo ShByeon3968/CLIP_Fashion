@@ -22,11 +22,21 @@ def select_image(evt: gr.SelectData, all_images):
     return selected_path
 
 # 프롬프트 생성 API 요청
-def request_prompt_generation(user_input):
-    print("사용자 입력:", user_input)
-    res = requests.post(f"{API_URL}/generate_prompt", data={"text": user_input})
-    return res.json()["ko_prompt"], res.json()["en_prompt"]
-
+def request_prompt_generation(image_path, style, angle, lighting):
+    print("요청 이미지:", image_path)
+    res = requests.post(
+        f"{API_URL}/generate_prompt",
+        data={
+            "text": image_path,
+            "style": style,
+            "angle": angle,
+            "lighting": lighting
+        }
+    )
+    json = res.json()
+    if "ko_prompt" not in json or "en_prompt" not in json:
+        raise RuntimeError(f"API 오류: {json.get('error', '응답 형식 이상')}")
+    return json["ko_prompt"], json["en_prompt"]
 # 리디자인 요청 API
 def request_redesign(prompt, image_path):
     image = Image.open(image_path).convert("RGB")
@@ -46,6 +56,7 @@ def request_redesign(prompt, image_path):
     else:
         raise RuntimeError(f"API 응답 실패: {res.status_code} {res.text}")
 
+
 # Gradio UI
 with gr.Blocks() as demo:
     gr.Markdown("## 👕 텍스트 검색 기반 의류 리디자인 시스템")
@@ -62,15 +73,32 @@ with gr.Blocks() as demo:
         search_button.click(fn=find_by_text, inputs=text_input, outputs=result_gallery)
         result_gallery.select(fn=select_image, inputs=[result_gallery], outputs=selected_image_path)
 
-    # TAB 2: 프롬프트 자동 생성
+    # TAB 2: 프롬프트 자동 생성 + 프리셋 UI
     with gr.Tab("2️⃣ 프롬프트 자동 생성"):
         prompt_ko_display = gr.Textbox(label="추천 프롬프트 (한국어)")
         prompt_en_display = gr.Textbox(label="영어 Prompt (SDXL용)", lines=2)
         generate_prompt_button = gr.Button("자동 프롬프트 생성")
 
+        # ✅ 프리셋 선택 항목
+        style_dropdown = gr.Dropdown(
+            label="스타일 프리셋",
+            choices=["high fashion", "streetwear", "vintage", "modern minimalist"],
+            value="high fashion"
+        )
+        angle_dropdown = gr.Dropdown(
+            label="카메라 앵글",
+            choices=["full body", "waist up", "close-up", "side view"],
+            value="full body"
+        )
+        light_dropdown = gr.Dropdown(
+            label="조명 및 배경",
+            choices=["studio background, soft lighting, 8k", "outdoor sunlight", "runway lighting"],
+            value="studio background, soft lighting, 8k"
+        )
+
         generate_prompt_button.click(
             fn=request_prompt_generation,
-            inputs=selected_image_path,
+            inputs=[selected_image_path, style_dropdown, angle_dropdown, light_dropdown],
             outputs=[prompt_ko_display, prompt_en_display]
         )
 
@@ -80,7 +108,7 @@ with gr.Blocks() as demo:
         redesign_button = gr.Button("리디자인 생성")
         redesign_result = gr.Image(label="리디자인 결과")
 
-        # design_prompt가 선언된 이후
+        # 프롬프트 자동 삽입
         generate_prompt_button.click(
             fn=lambda ko, en: (en, en),
             inputs=[prompt_ko_display, prompt_en_display],
