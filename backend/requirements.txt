@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+pillow
+transformers
+diffusers
+torch
+controlnet-aux
+accelerate
+huggingface-hub
+openai
+langchain                
+langchain-community      
+langchain-core           
+langchain-text-splitters 
+langsmith                
