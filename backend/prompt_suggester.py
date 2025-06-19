@@ -5,6 +5,8 @@ import os
 from langchain_community.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.schema import SystemMessage, HumanMessage
+from transformers import CLIPTokenizer
+from typing import List
 
 # OpenAI API Key 설정
 
@@ -81,10 +83,7 @@ def translate_to_english(korean_prompt: str) -> str:
                     "- Do NOT write full sentences.\n"
                     "- Output should be a list of descriptive **keywords**.\n"
                     "- Use a **preset-style structure** combining:\n"
-                    "   1. Clothing description (translated and redesigned)\n"
-                    "   2. Style type (e.g., high fashion, editorial photo)\n"
-                    "   3. Viewpoint (e.g., full body, front view)\n"
-                    "   4. Lighting/quality (e.g., soft lighting, 8k, studio background)\n\n"
+                    "   Clothing description (translated and redesigned),Style type (e.g., high fashion, editorial photo)"
                 )
             ),
             HumanMessage(
@@ -95,4 +94,43 @@ def translate_to_english(korean_prompt: str) -> str:
     except Exception as e:
         print("[Prompt Translation Error]", e)
         return "blue sleeveless hoodie, high fashion, full body, 8k, soft lighting, studio background"
-    
+
+def truncate_prompt(prompt: str, max_tokens: int = 77) -> str:
+    tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
+    tokens = tokenizer.tokenize(prompt)
+    if len(tokens) > max_tokens:
+        tokens = tokens[:max_tokens]
+    return tokenizer.convert_tokens_to_string(tokens)
+
+def improve_prompt_with_llm(bad_prompt: str, visual_goals: List[str] = None) -> str:
+    """
+    기존 프롬프트를 명확하게 시각적으로 보완하는 함수
+    - bad_prompt: 원래의 부정확하거나 모호한 프롬프트
+    - visual_goals: 프롬프트에 반드시 반영되어야 할 시각적 목표들
+    """
+    if visual_goals is None:
+        visual_goals = [
+            "Place a large white logo at the center of the chest",
+            "Use a red sweatshirt as the base garment",
+            "Ensure the logo is bold and clearly visible",
+        ]
+
+    goal_text = "\n".join(f"- {g}" for g in visual_goals)
+
+    llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.5)
+
+    messages = [
+        SystemMessage(content="You are a professional prompt engineer for Stable Diffusion. Your job is to rewrite prompts to be more visually descriptive and specific."),
+        HumanMessage(content=f"""
+Original Prompt:
+\"{bad_prompt}\"
+
+Visual Goals to Apply:
+{goal_text}
+
+Please rewrite the prompt in a visually descriptive and effective format for Stable Diffusion. Keep it concise but specific.
+""")
+    ]
+
+    improved_prompt = llm(messages).content.strip()
+    return improved_prompt

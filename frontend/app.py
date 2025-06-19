@@ -37,6 +37,7 @@ def request_prompt_generation(image_path, style, angle, lighting):
     if "ko_prompt" not in json or "en_prompt" not in json:
         raise RuntimeError(f"API 오류: {json.get('error', '응답 형식 이상')}")
     return json["ko_prompt"], json["en_prompt"]
+
 # 리디자인 요청 API
 def request_redesign(prompt, image_path):
     image = Image.open(image_path).convert("RGB")
@@ -50,12 +51,35 @@ def request_redesign(prompt, image_path):
     res = requests.post(f"{API_URL}/redesign_image", files=files, data=data)
 
     if res.status_code == 200:
-        image_base64 = res.json()["image_base64"]
+        json_data = res.json()
+        image_base64 = json_data["image_base64"]
+        clip_score = json_data.get("clip_score", 0.0)
+        prompt = json_data.get("prompt", "")
         decoded = base64.b64decode(image_base64)
-        return Image.open(io.BytesIO(decoded))
+        return Image.open(io.BytesIO(decoded)), clip_score, prompt
     else:
         raise RuntimeError(f"API 응답 실패: {res.status_code} {res.text}")
+    
+def requset_redesign_with_improved_prompt(pre_prompt,image_path):
+    image = Image.open(image_path).convert("RGB")
+    img_bytes = io.BytesIO()
+    image.save(img_bytes, format="PNG")
+    img_bytes.seek(0)
 
+    files = {"file": ("image.png", img_bytes, "image/png")}
+    data = {"pre_prompt": pre_prompt}
+
+    res = requests.post(f"{API_URL}/redesign_improved", files=files,data=data)
+
+    if res.status_code == 200:
+        json_data = res.json()
+        image_base64_imp = json_data["image_base64"]
+        clip_score_imp = json_data.get("clip_score", 0.0)
+        prompt_imp = json_data.get("prompt", "")
+        decoded_imp = base64.b64decode(image_base64_imp)
+        return Image.open(io.BytesIO(decoded_imp)), clip_score_imp, prompt_imp
+    else:
+        raise RuntimeError(f"API 응답 실패: {res.status_code} {res.text}")
 
 # Gradio UI
 with gr.Blocks() as demo:
@@ -76,7 +100,7 @@ with gr.Blocks() as demo:
     # TAB 2: 프롬프트 자동 생성 + 프리셋 UI
     with gr.Tab("2️⃣ 프롬프트 자동 생성"):
         prompt_ko_display = gr.Textbox(label="추천 프롬프트 (한국어)")
-        prompt_en_display = gr.Textbox(label="영어 Prompt (SDXL용)", lines=2)
+        prompt_en_display = gr.Textbox(label="영어 Prompt (SDXL용)", lines=2,interactive=True)
         generate_prompt_button = gr.Button("자동 프롬프트 생성")
 
         # ✅ 프리셋 선택 항목
@@ -107,18 +131,34 @@ with gr.Blocks() as demo:
         design_prompt = gr.Textbox(label="리디자인 지시 (자동 입력 가능)")
         redesign_button = gr.Button("리디자인 생성")
         redesign_result = gr.Image(label="리디자인 결과")
+        clip_score_text = gr.Textbox(label="CLIP Score", interactive=False)
+        apply_prompt_button = gr.Button("💡 보완 프롬프트 적용", visible=False)
 
-        # 프롬프트 자동 삽입
-        generate_prompt_button.click(
-            fn=lambda ko, en: (en, en),
-            inputs=[prompt_ko_display, prompt_en_display],
-            outputs=[generated_prompt, design_prompt]
-        )
-
+        # 리디자인 생성 + CLIP Score 반영 + 보완 프롬프트 저장
         redesign_button.click(
             fn=request_redesign,
             inputs=[design_prompt, selected_image_path],
-            outputs=redesign_result
+            outputs=[redesign_result, clip_score_text, design_prompt]  
+        )
+
+        # 보완 프롬프트 버튼 제어 로직
+        def check_clip_score(score):
+            try:
+                score = float(score)
+                return gr.update(visible=(score <= 0.24))
+            except:
+                return gr.update(visible=False)
+
+        clip_score_text.change(
+            fn=check_clip_score,
+            inputs=clip_score_text,
+            outputs=apply_prompt_button
+        )
+
+        apply_prompt_button.click(
+            fn=requset_redesign_with_improved_prompt,
+            inputs=[design_prompt, selected_image_path],
+            outputs=[redesign_result, clip_score_text, design_prompt]  # design_prompt가 보완되면 자동 반영
         )
 
 # 앱 실행
