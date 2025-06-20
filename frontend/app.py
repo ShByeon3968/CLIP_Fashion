@@ -56,7 +56,7 @@ def request_redesign(prompt, image_path):
         clip_score = json_data.get("clip_score", 0.0)
         prompt = json_data.get("prompt", "")
         decoded = base64.b64decode(image_base64)
-        return Image.open(io.BytesIO(decoded)), clip_score, prompt
+        return Image.open(io.BytesIO(decoded)), clip_score, prompt, Image.open(io.BytesIO(decoded))
     else:
         raise RuntimeError(f"API 응답 실패: {res.status_code} {res.text}")
     
@@ -77,7 +77,7 @@ def requset_redesign_with_improved_prompt(pre_prompt,image_path):
         clip_score_imp = json_data.get("clip_score", 0.0)
         prompt_imp = json_data.get("prompt", "")
         decoded_imp = base64.b64decode(image_base64_imp)
-        return Image.open(io.BytesIO(decoded_imp)), clip_score_imp, prompt_imp
+        return Image.open(io.BytesIO(decoded_imp)), clip_score_imp, prompt_imp, Image.open(io.BytesIO(decoded_imp))
     else:
         raise RuntimeError(f"API 응답 실패: {res.status_code} {res.text}")
     
@@ -178,13 +178,6 @@ with gr.Blocks() as app:
         clip_score_text = gr.Textbox(label="CLIP Score", interactive=False)
         apply_prompt_button = gr.Button("💡 보완 프롬프트 적용", visible=False)
 
-        # 리디자인 생성 + CLIP Score 반영 + 보완 프롬프트 저장
-        redesign_button.click(
-            fn=request_redesign,
-            inputs=[design_prompt, selected_image_path],
-            outputs=[redesign_result, clip_score_text, design_prompt]  
-        )
-
         # 보완 프롬프트 버튼 제어 로직
         def check_clip_score(score):
             try:
@@ -197,12 +190,6 @@ with gr.Blocks() as app:
             fn=check_clip_score,
             inputs=clip_score_text,
             outputs=apply_prompt_button
-        )
-
-        apply_prompt_button.click(
-            fn=requset_redesign_with_improved_prompt,
-            inputs=[design_prompt, selected_image_path],
-            outputs=[redesign_result, clip_score_text, design_prompt]  # design_prompt가 보완되면 자동 반영
         )
 
     with gr.Tab("4️⃣ 시착 이미지 생성"):
@@ -229,6 +216,20 @@ with gr.Blocks() as app:
             denoise_steps = gr.Number(label="Denoising Steps", minimum=20, maximum=40, value=30, step=1)
             seed = gr.Number(label="Seed", minimum=-1, maximum=2147483647, step=1, value=42)
         
+
+        
+        # 리디자인 생성 + CLIP Score 반영 + 보완 프롬프트 저장
+        redesign_button.click(
+            fn=request_redesign,
+            inputs=[design_prompt, selected_image_path],
+            outputs=[redesign_result, clip_score_text, design_prompt,garm_img]  
+        )
+        apply_prompt_button.click(
+            fn=requset_redesign_with_improved_prompt,
+            inputs=[design_prompt, selected_image_path],
+            outputs=[redesign_result, clip_score_text, design_prompt,garm_img]  # design_prompt가 보완되면 자동 반영
+        )
+
         try_button.click(fn=request_try_on, inputs=[imgs, garm_img, prompt, is_checked,is_checked_crop, denoise_steps, seed], outputs=[image_out,masked_img], api_name='tryon')
 
 # 앱 실행
