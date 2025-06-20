@@ -1,6 +1,6 @@
 import gradio as gr
 from search_engine import search_by_text
-from utils import load_yaml
+from app_utils import load_yaml
 from PIL import Image
 import requests
 import io
@@ -80,9 +80,53 @@ def requset_redesign_with_improved_prompt(pre_prompt,image_path):
         return Image.open(io.BytesIO(decoded_imp)), clip_score_imp, prompt_imp
     else:
         raise RuntimeError(f"API 응답 실패: {res.status_code} {res.text}")
+    
+def request_try_on(user_img_dict, garm_img, garment_des, is_checked, is_checked_crop, denoise_steps, seed):
+    try:
+        # 사용자 이미지 변환
+        print(user_img_dict)
+        user_img = user_img_dict["background"] if isinstance(user_img_dict, dict) else user_img_dict
+        user_buf = io.BytesIO()
+        user_img.save(user_buf, format="PNG")
+        user_buf.seek(0)
 
+        # 의류 이미지 변환
+        garm_buf = io.BytesIO()
+        garm_img.save(garm_buf, format="PNG")
+        garm_buf.seek(0)
+
+        files = {
+            "user_image": ("user.png", user_buf, "image/png"),
+            "garment_image": ("garment.png", garm_buf, "image/png")
+        }
+
+        data = {
+            "garment_des": garment_des,
+            "use_mask": str(is_checked).lower(),       # 'true' or 'false'
+            "use_crop": str(is_checked_crop).lower(),  # 'true' or 'false'
+            "denoise_steps": int(denoise_steps),
+            "seed": int(seed)
+        }
+
+        res = requests.post(f"{API_URL}/virtual_try_on/", files=files, data=data)
+
+        if res.status_code != 200:
+            raise RuntimeError(f"API 응답 실패: {res.status_code} {res.text}")
+
+        json_data = res.json()
+        tryon_base64 = json_data["result"]
+        masked_base64 = json_data.get("masked", "")
+
+        tryon_image = Image.open(io.BytesIO(base64.b64decode(tryon_base64)))
+        masked_image = Image.open(io.BytesIO(base64.b64decode(masked_base64))) if masked_base64 else None
+
+        return tryon_image, masked_image
+
+    except Exception as e:
+        raise RuntimeError(f"Try-on 요청 실패: {str(e)}")
+    
 # Gradio UI
-with gr.Blocks() as demo:
+with gr.Blocks() as app:
     gr.Markdown("## 👕 텍스트 검색 기반 의류 리디자인 시스템")
 
     selected_image_path = gr.State()
@@ -161,5 +205,31 @@ with gr.Blocks() as demo:
             outputs=[redesign_result, clip_score_text, design_prompt]  # design_prompt가 보완되면 자동 반영
         )
 
+    with gr.Tab("4️⃣ 시착 이미지 생성"):
+        with gr.Column():
+            imgs = gr.ImageEditor(sources='upload', type="pil", label='사용자 인물 이미지 (자동 마스킹 가능)', interactive=True)
+            with gr.Row():
+                is_checked = gr.Checkbox(label="자동 마스크 사용", value=True)
+            with gr.Row():
+                is_checked_crop = gr.Checkbox(label="자동 자르기", value=False)
+
+        with gr.Column():
+            garm_img = gr.Image(label="의류 이미지", sources='upload', type="pil")
+            with gr.Row(elem_id="prompt-container"):
+                with gr.Row():
+                    prompt = gr.Textbox(placeholder="예: Short Sleeve Round Neck T-shirts", show_label=True)
+
+        with gr.Column():
+            masked_img = gr.Image(label="마스킹된 사용자 이미지", show_share_button=False)
+        with gr.Column():
+            image_out = gr.Image(label="Try-on 결과 이미지", show_share_button=False)
+        
+        with gr.Column():
+            try_button = gr.Button(value="Try-on 실행")
+            denoise_steps = gr.Number(label="Denoising Steps", minimum=20, maximum=40, value=30, step=1)
+            seed = gr.Number(label="Seed", minimum=-1, maximum=2147483647, step=1, value=42)
+        
+        try_button.click(fn=request_try_on, inputs=[imgs, garm_img, prompt, is_checked,is_checked_crop, denoise_steps, seed], outputs=[image_out,masked_img], api_name='tryon')
+
 # 앱 실행
-demo.launch()
+app.launch()

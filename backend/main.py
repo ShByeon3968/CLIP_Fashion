@@ -2,7 +2,7 @@ import os
 import sys
 import io
 import base64
-from fastapi import FastAPI, UploadFile, Form
+from fastapi import FastAPI, UploadFile, Form, File
 from fastapi.responses import JSONResponse
 from PIL import Image
 
@@ -11,8 +11,9 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from generator import generate_redesign, generate_redesign_img2img
 from prompt_suggester import generate_caption, suggest_prompt_langchain, translate_to_english, improve_prompt_with_llm
-from utils import load_yaml
+from app_utils import load_yaml, pil_to_base64
 from clip_score_util import compute_clip_score
+from ldm_vton import start_tryon
 
 # 설정 로드
 config = load_yaml("../config.yaml")
@@ -108,3 +109,34 @@ async def redesign_improved(pre_prompt: str = Form(...),file: UploadFile = None)
     except Exception as e:
         print("[Redesign Improved Error]", e)
         return JSONResponse({"error": str(e)}, status_code=500)
+    
+@app.post("/virtual_try_on/")
+async def virtual_tryon(
+    user_image: UploadFile = File(...),
+    garment_image: UploadFile = File(...),
+    garment_des: str = Form(...),
+    use_mask: str = Form("true"),
+    use_crop: str = Form("false"),
+    denoise_steps: int = Form(30),
+    seed: int = Form(42)
+):
+    try:
+        # 이미지 로드
+        user_bytes = await user_image.read()
+        garment_bytes = await garment_image.read()
+
+        user_img = Image.open(io.BytesIO(user_bytes)).convert("RGB")
+        garment_img = Image.open(io.BytesIO(garment_bytes)).convert("RGB")
+        garment_des = garment_des.strip()
+        is_checked = use_mask.lower()
+        is_checked_crop = use_crop.lower()
+
+        image_out,masked_img = start_tryon(user_img,garment_img,garment_des,is_checked,is_checked_crop,denoise_steps,seed)
+
+        return JSONResponse({
+            "result": pil_to_base64(image_out),
+            "masked": pil_to_base64(masked_img)
+        })
+    
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)      
