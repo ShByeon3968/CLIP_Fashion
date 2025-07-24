@@ -131,15 +131,40 @@ with gr.Blocks() as app:
 
     selected_image_path = gr.State()
     generated_prompt = gr.State()
+    
+    # TAB 1: 의류 이미지 선택 (텍스트 검색 or 직접 업로드)
+    with gr.Tab("1️⃣ 의류 이미지 선택"):
+        gr.Markdown("### 🔍 텍스트 검색 또는 📁 직접 업로드로 의류 이미지를 선택하세요")
 
-    # TAB 1: 텍스트로 유사 이미지 검색
-    with gr.Tab("1️⃣ 텍스트로 유사 이미지 검색"):
-        text_input = gr.Textbox(label="예: 검은 후드티")
-        search_button = gr.Button("검색")
-        result_gallery = gr.Gallery(label="유사 이미지 선택", show_label=False)
+        image_input_mode = gr.Radio(
+            label="이미지 선택 방식",
+            choices=["텍스트로 유사 이미지 검색", "이미지 직접 업로드"],
+            value="텍스트로 유사 이미지 검색"
+        )
 
-        search_button.click(fn=find_by_text, inputs=text_input, outputs=result_gallery)
-        result_gallery.select(fn=select_image, inputs=[result_gallery], outputs=selected_image_path)
+        # 1-1. 텍스트 검색 UI
+        with gr.Column(visible=True) as text_search_area:
+            text_input = gr.Textbox(label="예: 검은 후드티")
+            search_button = gr.Button("검색")
+            result_gallery = gr.Gallery(label="유사 이미지 선택", show_label=False)
+
+            search_button.click(fn=find_by_text, inputs=text_input, outputs=result_gallery)
+            result_gallery.select(fn=select_image, inputs=[result_gallery], outputs=selected_image_path)
+
+    # 1-2. 직접 업로드 UI
+    with gr.Column(visible=False) as upload_area:
+        upload_image = gr.Image(type="filepath", label="직접 의류 이미지 업로드")
+        confirm_button = gr.Button("이 이미지 선택")
+        confirm_button.click(fn=lambda path: path, inputs=upload_image, outputs=selected_image_path)
+
+    # Radio 버튼에 따라 보이기 전환
+    def toggle_mode(mode):
+        return (
+            gr.update(visible=(mode == "텍스트로 유사 이미지 검색")),
+            gr.update(visible=(mode == "이미지 직접 업로드"))
+        )
+
+    image_input_mode.change(fn=toggle_mode, inputs=image_input_mode, outputs=[text_search_area, upload_area])
 
     # TAB 2: 프롬프트 자동 생성 + 프리셋 UI
     with gr.Tab("2️⃣ 프롬프트 자동 생성"):
