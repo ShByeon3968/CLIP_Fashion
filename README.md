@@ -4,18 +4,7 @@
 CLIP, Stable Diffusion, ControlNet 기반으로 구성되어 있으며, Gradio를 통해 직관적인 UI를 제공합니다.
 
 ---
-//![Main Banner](image_asset/front_main.png)
-
-## 🧩 프로젝트 구성도
-```mermaid
-graph LR
-UserPrompt["사용자 입력 (텍스트 or 이미지)"]
-ImageSearch["의류 이미지 검색 (CLIP) or 업로드"]
-Prompt["프롬프트 자동 생성 (LLM)"]
-Redesign["리디자인 (Stable Diffusion)"]
-VTON["사용자 사진 기반 가상 시착 (Try-On)"]
-UserPrompt-->ImageSearch-->Prompt-->Redesign-->VTON
-'''
+![Main Banner](image_asset/front_main.png)
 
 ## ✨ 주요 기능
 
