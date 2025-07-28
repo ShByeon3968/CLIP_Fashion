@@ -199,7 +199,7 @@ with gr.Blocks() as app:
     with gr.Tab("3️⃣ 리디자인 요청"):
         design_prompt = gr.Textbox(label="리디자인 지시 (자동 입력 가능)")
         redesign_button = gr.Button("리디자인 생성")
-        redesign_result = gr.Image(label="리디자인 결과")
+        redesign_result = gr.Image(label="리디자인 결과",scale=0.5)
         clip_score_text = gr.Textbox(label="CLIP Score", interactive=False)
         apply_prompt_button = gr.Button("💡 보완 프롬프트 적용", visible=False)
 
@@ -232,9 +232,9 @@ with gr.Blocks() as app:
                     prompt = gr.Textbox(placeholder="예: Short Sleeve Round Neck T-shirts", show_label=True)
 
         with gr.Column():
-            masked_img = gr.Image(label="마스킹된 사용자 이미지", show_share_button=False)
+            masked_img = gr.Image(label="마스킹된 사용자 이미지", show_share_button=False,scale=0.5)
         with gr.Column():
-            image_out = gr.Image(label="Try-on 결과 이미지", show_share_button=False)
+            image_out = gr.Image(label="Try-on 결과 이미지", show_share_button=False,scale=0.5)
         
         with gr.Column():
             try_button = gr.Button(value="Try-on 실행")
