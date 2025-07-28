@@ -6,15 +6,14 @@ CLIP, Stable Diffusion, ControlNet 기반으로 구성되어 있으며, Gradio�
 ---
 
 ## 🧩 프로젝트 구성도
-[사용자 입력 (텍스트 or 이미지)]
-↓
-[의류 이미지 검색 (CLIP)]
-↓
-[프롬프트 자동 생성 (LLM)]
-↓
-[리디자인 (Stable Diffusion)]
-↓
-[사용자 사진 기반 가상 시착 (Try-On)]
+```mermaid
+UserPrompt["사용자 입력 (텍스트 or 이미지)"]
+ImageSearch["의류 이미지 검색 (CLIP) or 업로드"]
+Prompt["프롬프트 자동 생성 (LLM)"]
+Redesign["리디자인 (Stable Diffusion)"]
+VTON["사용자 사진 기반 가상 시착 (Try-On)"]
+UserPrompt-->ImageSearch-->Prompt-->Redesign-->VTON
+'''
 
 ## ✨ 주요 기능
 
@@ -33,7 +32,7 @@ CLIP, Stable Diffusion, ControlNet 기반으로 구성되어 있으며, Gradio�
 - **Backend API**: FastAPI
 - **AI Models**:
   - CLIP (text-image retrieval & evaluation)
-  - LLM (prompt generation & refinement)
+  - OpenAI gpt-4o (prompt generation & refinement)
   - Stable Diffusion (image redesign)
   - ControlNet / IDM-VTON  (virtual try-on) https://github.com/yisol/IDM-VTON?tab=readme-ov-file 
 - **Preprocessing**: PIL, OpenCV, NumPy
