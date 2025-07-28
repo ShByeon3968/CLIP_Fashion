@@ -7,6 +7,7 @@ CLIP, Stable Diffusion, ControlNet 기반으로 구성되어 있으며, Gradio�
 
 ## 🧩 프로젝트 구성도
 ```mermaid
+graph LR
 UserPrompt["사용자 입력 (텍스트 or 이미지)"]
 ImageSearch["의류 이미지 검색 (CLIP) or 업로드"]
 Prompt["프롬프트 자동 생성 (LLM)"]
