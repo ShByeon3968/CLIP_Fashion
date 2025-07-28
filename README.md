@@ -2,8 +2,9 @@
 
 텍스트 기반 검색부터 리디자인, 그리고 사용자의 실제 사진 위에 의류를 입혀보는 **End-to-End 패션 AI 서비스**입니다.  
 CLIP, Stable Diffusion, ControlNet 기반으로 구성되어 있으며, Gradio를 통해 직관적인 UI를 제공합니다.
-
+//![Main Banner](asset/app_client.png)
 ---
+
 
 ## 🧩 프로젝트 구성도
 ```mermaid
